@@ -29,7 +29,7 @@ scikit-learn==1.2.2
 pynvml
 art
 fschat @ git+https://github.com/lm-sys/FastChat.git@27a05b04a35510afb1d767ae7e5990cbd278f8fe
-gradio==3.50.2
+gradio==4.36.1
 tensorboard
 
 mamba-ssm==1.2.0.post1
