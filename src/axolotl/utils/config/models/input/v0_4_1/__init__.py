@@ -677,6 +677,10 @@ class AxolotlInputConfig(
     default_system_message: Optional[str] = None
 
     fix_untrained_tokens: Optional[bool] = None
+    # Added by TrueFoundry Team
+    save_model_on_interrupt: bool = True
+    drop_long_sequences: bool = True
+    ############################
 
     # INTERNALS - document for now, generally not set externally
     is_preprocess: Optional[bool] = None
