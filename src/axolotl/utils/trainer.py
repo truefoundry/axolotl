@@ -288,15 +288,6 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
                     desc="Add position_id column (Sample Packing)",
                 )
 
-        if len(train_dataset) == 0:
-            raise ValueError(
-                "No samples left in train data after loading and processing. "
-            )
-
-        if (cfg.val_set_size or cfg.test_datasets) and len(eval_dataset) == 0:
-            raise ValueError(
-                "No samples left in eval data after loading and processing. "
-            )
     return train_dataset, eval_dataset
 
 
