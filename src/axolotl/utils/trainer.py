@@ -301,17 +301,14 @@ def process_pretraining_datasets_for_packing(
         drop_long,
         desc="Dropping Long Sequences From Train Dataset",
     )
-    LOG.warning(f"Dropped {_len_pre_drop - len(train_dataset)} rows")
+    _dropped_rows = _len_pre_drop - len(train_dataset)
+    if _dropped_rows > 0:
+        LOG.warning(f"Dropped {_dropped_rows} rows")
 
     if skip_position_ids:
         train_dataset = train_dataset.map(
             add_position_ids,
             desc="Add position_id column (Pretraining Sample Packing)",
-        )
-
-    if len(train_dataset) == 0:
-        raise ValueError(
-            "No samples left in Train Dataset after loading and processing. "
         )
 
     return train_dataset

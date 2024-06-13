@@ -2,9 +2,15 @@
 This module provides functionality for selecting chat templates based on user choices.
 These templates are used for formatting messages in a conversation.
 """
+import logging
+
+LOG = logging.getLogger("axolotl.utils.chat_templates")
+
+_DEFAULT_TEMPLATE_CHOICE = "tokenizer_default"
+_DEFAULT_FALLBACK_CHATML_TEMPLATE_CHOICE_PREFIX = "tokenizer_default_fallback_"
 
 
-def chat_templates(user_choice: str):
+def chat_templates(user_choice: str, tokenizer=None):
     """
     Finds the correct chat_template for the tokenizer_config.
 
@@ -29,6 +35,33 @@ def chat_templates(user_choice: str):
         "phi_3": "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'system') %}{{'<|system|>' + '\n' + message['content'] + '<|end|>' + '\n'}}{% elif (message['role'] == 'user') %}{{'<|user|>' + '\n' + message['content'] + '<|end|>' + '\n' + '<|assistant|>' + '\n'}}{% elif message['role'] == 'assistant' %}{{message['content'] + '<|end|>' + '\n'}}{% endif %}{% endfor %}",
         "deepseek_v2": "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{{ bos_token }}{% for message in messages %}{% if message['role'] == 'user' %}{{ '<｜User｜>' + message['content'] }}{% elif message['role'] == 'assistant' %}{{ '<｜Assistant｜>' + message['content'] + eos_token }}{% elif message['role'] == 'system' %}{{ message['content'] + '\n\n' }}{% endif %}{% endfor %}{% if add_generation_prompt %}{{ '<｜Assistant｜>' }}{% endif %}",
     }
+
+    if user_choice == _DEFAULT_TEMPLATE_CHOICE:
+        if not tokenizer:
+            raise ValueError(
+                f"`tokenizer` cannot be None when chat_template choice is {_DEFAULT_TEMPLATE_CHOICE}"
+            )
+        if not tokenizer.chat_template:
+            raise ValueError(
+                f"`chat_template choice is {_DEFAULT_TEMPLATE_CHOICE} but tokenizer's chat_template is null. "
+                f"Please add a chat_template in tokenizer config"
+            )
+        return tokenizer.chat_template
+
+    if user_choice.startswith(_DEFAULT_FALLBACK_CHATML_TEMPLATE_CHOICE_PREFIX):
+        if not tokenizer:
+            raise ValueError(
+                f"`tokenizer` cannot be None when chat_template choice starts with {_DEFAULT_FALLBACK_CHATML_TEMPLATE_CHOICE_PREFIX}"
+            )
+        if tokenizer.chat_template:
+            return tokenizer.chat_template
+
+        user_choice = user_choice[
+            len(_DEFAULT_FALLBACK_CHATML_TEMPLATE_CHOICE_PREFIX) :
+        ]
+        LOG.warning(
+            f"No chat template found on tokenizer, falling back to {user_choice}"
+        )
 
     if user_choice in templates:
         return templates[user_choice]

@@ -8,9 +8,16 @@ import logging
 import os
 from enum import Enum
 from importlib.metadata import version
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field, conlist, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    StringConstraints,
+    conlist,
+    field_validator,
+    model_validator,
+)
 from transformers import SchedulerType
 from transformers.training_args import OptimizerNames
 
@@ -190,6 +197,7 @@ class ChatTemplate(str, Enum):
     llama3 = "llama3"  # pylint: disable=invalid-name
     phi_3 = "phi_3"  # pylint: disable=invalid-name
     deepseek_v2 = "deepseek_v2"  # pylint: disable=invalid-name
+    tokenizer_default = "tokenizer_default"  # pylint: disable=invalid-name
 
 
 class LoftQConfig(BaseModel):
@@ -673,7 +681,12 @@ class AxolotlInputConfig(
     gpu_memory_limit: Optional[Union[int, str]] = None
     low_cpu_mem_usage: Optional[bool] = None
 
-    chat_template: Optional[ChatTemplate] = None
+    chat_template: Optional[
+        Union[
+            ChatTemplate,
+            Annotated[str, StringConstraints(pattern="^tokenizer_default_fallback_")],
+        ]
+    ] = None
     default_system_message: Optional[str] = None
 
     fix_untrained_tokens: Optional[bool] = None

@@ -63,7 +63,7 @@ class ChatTemplatePrompter(Prompter):
 
         return self.tokenizer.apply_chat_template(
             turns,
-            truncation=True,
+            truncation=False,
             max_length=self.max_length,
             add_generation_prompt=add_generation_prompt,
             chat_template=self.chat_template,
@@ -338,10 +338,15 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
 
 def load(tokenizer, cfg, ds_cfg: Optional[Dict[str, Any]] = None):
     ds_cfg = ds_cfg or {}
+    chat_template = (
+        ds_cfg["chat_template"] if ds_cfg and "chat_template" in ds_cfg else "chatml"
+    )
+    chat_template_str = chat_templates(chat_template, tokenizer=tokenizer)
+    LOG.info(f"Using chat template:\n---\n{chat_template_str!s}\n---")
 
     prompter_params = {
         "tokenizer": tokenizer,
-        "chat_template": chat_templates(ds_cfg.get("chat_template", "chatml")),
+        "chat_template": chat_template_str,
         "message_field_role": ds_cfg.get("message_field_role", "from"),
         "message_field_content": ds_cfg.get("message_field_content", "value"),
         "message_field_training": ds_cfg.get("message_field_training", "training"),
@@ -361,7 +366,9 @@ def load(tokenizer, cfg, ds_cfg: Optional[Dict[str, Any]] = None):
     }
 
     strategy = ChatTemplateStrategy(
-        ChatTemplatePrompter(**prompter_params), tokenizer=tokenizer, **strategy_params
+        ChatTemplatePrompter(**prompter_params), 
+        tokenizer=tokenizer, 
+        **strategy_params
     )
 
     if "field_messages" in ds_cfg and hasattr(strategy, "messages"):
