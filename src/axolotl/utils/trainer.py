@@ -169,6 +169,10 @@ def add_length(sample):
     return sample
 
 
+def drop_no_outputs(sample):
+    return any(v != -100 for v in sample["labels"])
+
+
 def drop_long_seq(sample, sequence_len=2048, min_sequence_len=2):
     return (
         len(sample["input_ids"]) <= sequence_len
@@ -219,6 +223,20 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
                     f"Found {_dropped_rows} sequences longer than {cfg.sequence_len} tokens in train dataset. "
                     f"Please either increase --sequence_len or set --drop_long_sequences to True to drop and ignore such sequences."
                 )
+
+        _len_pre_drop = len(train_dataset)
+        train_dataset = train_dataset.filter(
+            drop_no_outputs,
+            num_proc=cfg.dataset_processes,
+            load_from_cache_file=not cfg.is_preprocess,
+            desc="Dropping Sequences Without Outputs",
+        )
+        _dropped_rows = _len_pre_drop - len(train_dataset)
+        if _dropped_rows > 0:
+            LOG.warning(
+                f"Dropped {_dropped_rows} rows with no outputs from train dataset"
+            )
+
         if eval_dataset:
             _len_pre_drop = len(eval_dataset)
             eval_dataset = eval_dataset.filter(
@@ -229,12 +247,25 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
             )
             _dropped_rows = _len_pre_drop - len(eval_dataset)
             if _dropped_rows > 0:
-                LOG.warning(f"Dropped {_dropped_rows} rows")
+                LOG.warning(f"Dropped {_dropped_rows} rows from eval dataset")
                 if not cfg.drop_long_sequences:
                     raise ValueError(
                         f"Found {_dropped_rows} sequences longer than {cfg.sequence_len} tokens in eval dataset. "
                         f"Please either increase --sequence_len or set --drop_long_sequences to True to drop and ignore such sequences."
                     )
+
+            _len_pre_drop = len(eval_dataset)
+            eval_dataset = eval_dataset.filter(
+                drop_no_outputs,
+                num_proc=cfg.dataset_processes,
+                load_from_cache_file=not cfg.is_preprocess,
+                desc="Dropping Sequences Without Outputs",
+            )
+            _dropped_rows = _len_pre_drop - len(eval_dataset)
+            if _dropped_rows > 0:
+                LOG.warning(
+                    f"Dropped {_dropped_rows} rows with no outputs from eval dataset"
+                )
 
         if cfg.group_by_length:
             train_dataset = train_dataset.map(
