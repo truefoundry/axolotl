@@ -187,7 +187,6 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
         sequence_len=cfg.sequence_len,
         min_sequence_len=cfg.min_sample_len or 2,
     )
-
     if cfg.is_preprocess:
         min_input_len = np.min(get_dataset_lengths(train_dataset))
         LOG.debug(f"min_input_len: {min_input_len}", main_process_only=True)
@@ -200,6 +199,14 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
         if eval_dataset:
             eval_dataset = eval_dataset.remove_columns("attention_mask")
 
+    if (
+        cfg.is_mistral_derived_model and cfg.flash_attention
+    ) or cfg.model_config_type == "mamba":
+        LOG.info("dropping attention_mask column")
+        train_dataset = train_dataset.remove_columns("attention_mask")
+        if eval_dataset:
+            eval_dataset = eval_dataset.remove_columns("attention_mask")
+
     if cfg.model_config_type == "falcon":
         LOG.info("dropping token_type_ids column if it exists")
         if "token_type_ids" in train_dataset.column_names:
@@ -207,12 +214,6 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
         if eval_dataset and "token_type_ids" in eval_dataset.column_names:
             eval_dataset = eval_dataset.remove_columns("token_type_ids")
 
-    train_dataset = train_dataset.filter(
-        drop_long,
-        num_proc=cfg.dataset_processes,
-        load_from_cache_file=not cfg.is_preprocess,
-        desc="Dropping Long Sequences",
-    )
     _len_pre_drop = len(train_dataset)
     train_dataset = train_dataset.filter(
         drop_long,
@@ -221,12 +222,14 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
         desc="Dropping Long Sequences From Train Dataset",
     )
     _dropped_rows = _len_pre_drop - len(train_dataset)
-    LOG.warning(f"Dropped {_dropped_rows} rows from train dataset")
-    if not cfg.drop_long_sequences and _dropped_rows > 0:
-        raise ValueError(
-            f"Found {_dropped_rows} longer than {cfg.sequence_len} tokens in train dataset. "
-            f"Please either increase --sequence_len or set --drop_long_sequences to True to drop and ignore such sequences."
-        )
+    if _dropped_rows > 0:
+        LOG.warning(f"Dropped {_dropped_rows} rows from train dataset")
+        if not cfg.drop_long_sequences:
+            raise ValueError(
+                f"Found {_dropped_rows} sequences longer than {cfg.sequence_len} tokens in train dataset. "
+                f"Please either increase --sequence_len or set --drop_long_sequences to True to drop and ignore such sequences."
+            )
+
     _len_pre_drop = len(train_dataset)
     train_dataset = train_dataset.filter(
         drop_no_outputs,
@@ -236,9 +239,7 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
     )
     _dropped_rows = _len_pre_drop - len(train_dataset)
     if _dropped_rows > 0:
-        LOG.warning(
-            f"Dropped {_dropped_rows} rows with no outputs from train dataset"
-        )
+        LOG.warning(f"Dropped {_dropped_rows} rows with no outputs from train dataset")
 
     if eval_dataset:
         _len_pre_drop = len(eval_dataset)
