@@ -366,9 +366,7 @@ def load(tokenizer, cfg, ds_cfg: Optional[Dict[str, Any]] = None):
     }
 
     strategy = ChatTemplateStrategy(
-        ChatTemplatePrompter(**prompter_params), 
-        tokenizer=tokenizer, 
-        **strategy_params
+        ChatTemplatePrompter(**prompter_params), tokenizer=tokenizer, **strategy_params
     )
 
     if "field_messages" in ds_cfg and hasattr(strategy, "messages"):
