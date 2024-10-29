@@ -48,7 +48,11 @@ from axolotl.utils.data.utils import (
     retry_on_request_exceptions,
 )
 from axolotl.utils.dict import DictDefault
-from axolotl.utils.distributed import is_local_main_process, zero_first
+from axolotl.utils.distributed import (
+    compute_and_broadcast,
+    is_local_main_process,
+    zero_first,
+)
 from axolotl.utils.trainer import (
     calculate_total_num_steps,
     process_datasets_for_packing,
@@ -125,9 +129,15 @@ def prepare_dataset(cfg, tokenizer, processor=None):
     if eval_dataset and cfg.sample_packing and cfg.eval_sample_packing is not False:
         total_eval_steps = calculate_total_num_steps(cfg, eval_dataset, update=False)
         if total_eval_steps == 0:
-            raise ValueError(
-                "eval dataset split is too small for sample_packing. You should set `eval_sample_packing: False`. "
+            LOG.warning(
+                "eval dataset split is too small for sample_packing. Setting `eval_sample_packing to False`."
             )
+            if cfg.world_size > 1:
+                _eval_sample_packing = compute_and_broadcast(lambda: 0)
+                if _eval_sample_packing < 1:
+                    cfg.eval_sample_packing = False
+            else:
+                cfg.eval_sample_packing = False
 
     if cfg.max_steps:
         total_num_steps = min(

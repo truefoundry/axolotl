@@ -19,6 +19,7 @@ from axolotl.core.trainer_builder import HFCausalTrainerBuilder, HFRLTrainerBuil
 from axolotl.utils.distributed import reduce_and_broadcast
 from axolotl.utils.environment import check_cuda_p2p_ib_support
 from axolotl.utils.samplers import MultipackBatchSampler, get_dataset_lengths
+from axolotl.utils.samplers.utils import plot_ascii_lengths_histogram
 
 LOG = get_logger("axolotl")
 
@@ -203,6 +204,17 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
         if eval_dataset and "token_type_ids" in eval_dataset.column_names:
             eval_dataset = eval_dataset.remove_columns("token_type_ids")
 
+    # TODO (chiragjn): The validation of sequence lengths should be done at the caller of this function
+    # This function is only called when `cfg.sample_packing` is True
+    drop_long = (
+        _validate_datasets_sequence_lengths(
+            cfg=cfg,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+        )
+        or drop_long
+    )
+
     prior_len = len(train_dataset)
     train_dataset = train_dataset.filter(
         drop_long,
@@ -225,6 +237,11 @@ def process_datasets_for_packing(cfg, train_dataset, eval_dataset):
         dropped = prior_len - len(eval_dataset)
         if dropped:
             LOG.warning(f"Dropped {dropped} long samples from eval dataset")
+
+    train_dataset, eval_dataset = _drop_num_tokens_pre_truncation(
+        train_dataset,
+        eval_dataset,
+    )
 
     # drop samples with where the number of elements with labels not equal to -100 is zero
     def drop_no_trainable_tokens(sample):
@@ -526,3 +543,82 @@ def setup_trainer(
     trainer_builder.eval_dataset = eval_dataset
 
     return trainer_builder.build(total_num_steps)
+
+
+def _drop_long_seq(sample, max_sequence_len, min_sequence_len):
+    return min_sequence_len <= sample["num_tokens_pre_truncation"] <= max_sequence_len
+
+
+def _validate_dataset_sequence_lengths(
+    dataset,
+    dataset_type,
+    sequence_len,
+    long_sequences_strategy,
+):
+    if "num_tokens_pre_truncation" not in dataset.features:
+        raise ValueError(
+            f"`long_sequences_strategy` is set to {long_sequences_strategy} but `num_tokens_pre_truncation` is missing from  {dataset_type} dataset"
+        )
+    plot_ascii_lengths_histogram(
+        data=dataset["num_tokens_pre_truncation"],
+        title=f"{dataset_type} Dataset lengths",
+        logger=LOG,
+    )
+    num_longer_seqs = sum(
+        1 for seq_len in dataset["num_tokens_pre_truncation"] if seq_len > sequence_len
+    )
+    max_len = max(dataset["num_tokens_pre_truncation"])
+    if num_longer_seqs > 0:
+        message = f"""\
+Found {num_longer_seqs}/{len(dataset)} sequences longer than {sequence_len} tokens in {dataset_type} Dataset.
+Longest sequence is {max_len} tokens."""
+        if long_sequences_strategy == "error":
+            raise ValueError(
+                f"{message}\n"
+                f"Please either increase --sequence_len or set --long_sequences_strategy to `drop` to drop and ignore such sequences."
+            )
+
+        LOG.warning(f"{message}\n" f"These sequences will be dropped.")
+
+
+def _validate_datasets_sequence_lengths(
+    cfg,
+    train_dataset,
+    eval_dataset,
+):
+    long_sequences_strategy = cfg.get("long_sequences_strategy", "truncate")
+    if long_sequences_strategy in ["drop", "error"]:
+        _validate_dataset_sequence_lengths(
+            dataset=train_dataset,
+            dataset_type="Train",
+            sequence_len=cfg.sequence_len,
+            long_sequences_strategy=long_sequences_strategy,
+        )
+        if eval_dataset:
+            _validate_dataset_sequence_lengths(
+                dataset=eval_dataset,
+                dataset_type="Eval",
+                sequence_len=cfg.sequence_len,
+                long_sequences_strategy=long_sequences_strategy,
+            )
+        if long_sequences_strategy == "drop":
+            drop_long = partial(
+                _drop_long_seq,
+                min_sequence_len=cfg.min_sample_len or 2,
+                max_sequence_len=cfg.sequence_len,
+            )
+            return drop_long
+
+    return None
+
+
+def _drop_num_tokens_pre_truncation(
+    train_dataset,
+    eval_dataset,
+):
+    if "num_tokens_pre_truncation" in train_dataset.features:
+        train_dataset = train_dataset.remove_columns(["num_tokens_pre_truncation"])
+    if eval_dataset and "num_tokens_pre_truncation" in eval_dataset.features:
+        eval_dataset = eval_dataset.remove_columns(["num_tokens_pre_truncation"])
+
+    return train_dataset, eval_dataset

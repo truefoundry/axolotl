@@ -54,11 +54,17 @@ DEFAULT_LOGGING_CONFIG: Dict[str, Any] = {
             "filters": [],
             "stream": sys.stdout,
         },
+        "file": {
+            "class": "logging.FileHandler",
+            "formatter": "simple",
+            "filename": "train.log",
+            "mode": "w",
+        },
     },
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
     "loggers": {
         "axolotl": {
-            "handlers": ["color_console"],
+            "handlers": ["color_console", "file"],
             "level": "DEBUG",
             "propagate": False,
         },

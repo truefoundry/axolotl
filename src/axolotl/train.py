@@ -22,6 +22,7 @@ from axolotl.common.cli import TrainerCliArgs
 from axolotl.contribs.lgpl.unsloth import (  # pylint: disable = no-name-in-module
     fix_untrained_tokens,
 )
+from axolotl.integrations.base import PluginManager
 from axolotl.logging_config import configure_logging
 from axolotl.utils.dict import DictDefault
 from axolotl.utils.freeze import freeze_layers_except
@@ -95,6 +96,8 @@ def train(
     model, peft_config = load_model(
         cfg, tokenizer, processor=processor, inference=cli_args.inference
     )
+    plugin_manager = PluginManager.get_instance()
+    plugin_manager.post_model_load(cfg, model)
     if model.generation_config is not None:
         model.generation_config.do_sample = True
 
@@ -144,7 +147,7 @@ def train(
         model.config.save_pretrained(str(Path(cfg.output_dir)))
 
     # In case we want to stop early with ctrl+c, this is a nice to have to save the pretrained model
-    if cfg.local_rank == 0:
+    if cfg.local_rank == 0 and cfg.get("save_model_on_interrupt", True):
 
         def terminate_handler(_, __, model_weakref):
             if model_weakref() is not None:
@@ -289,6 +292,11 @@ def train(
     elif cfg.hub_model_id:
         # defensively push to the hub to ensure the model card is updated
         trainer.push_to_hub()
+
+    if cfg.deepspeed:
+        trainer.deepspeed.destroy()
+    trainer.accelerator.free_memory()
+    trainer.model, trainer.model_wrapped, trainer.optimizer = None, None, None
 
     return model, tokenizer
 
