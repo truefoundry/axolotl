@@ -1,7 +1,7 @@
 """
 HF Chat Templates prompt strategy
 """
-
+import functools
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -64,13 +64,15 @@ class ChatTemplatePrompter(Prompter):
 
         if self.drop_system_message and turns[0]["role"] == "system":
             turns = turns[1:]
-
         if self.processor:
-            text = self.processor.apply_chat_template(
-                turns,
+            _apply_chat_template = functools.partial(
+                self.processor.apply_chat_template,
                 chat_template=self.chat_template,
-                tokenize=False,
                 add_generation_prompt=add_generation_prompt,
+            )
+            text = _apply_chat_template(
+                turns,
+                tokenize=False,
             )
             batch = self.processor(
                 text=text,
@@ -85,15 +87,27 @@ class ChatTemplatePrompter(Prompter):
                     batch[k] = val.tolist()
                 else:
                     batch[k] = val.squeeze().tolist()
+            batch["num_tokens_pre_truncation"] = len(
+                _apply_chat_template(turns, tokenize=True)
+            )
             return batch
 
-        return self.tokenizer.apply_chat_template(
-            turns,
-            truncation=True,
+        _apply_chat_template = functools.partial(
+            self.tokenizer.apply_chat_template,
             max_length=self.max_length,
             add_generation_prompt=add_generation_prompt,
             chat_template=self.chat_template,
         )
+        inputs = _apply_chat_template(
+            turns,
+            truncation=True,
+        )
+        return {
+            "input_ids": inputs,
+            "num_tokens_pre_truncation": len(
+                _apply_chat_template(turns, truncation=False)
+            ),
+        }
 
     def get_offsets_for_train_detail(
         self, text: str, train_details: List[Dict], mask_untrainable: bool = True
@@ -237,20 +251,29 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
         ):
             turns = self.get_conversation_thread(prompt)
             images = self.get_images(prompt)
-            prompt_ids = self.prompter.build_prompt(
+            prompt_tokenized = self.prompter.build_prompt(
                 turns[:-1],
                 add_generation_prompt=True,
                 images=images,
             )
-            tokenized_res = self.prompter.build_prompt(turns, images=images)
+            all_turns_tokenized = self.prompter.build_prompt(turns, images=images)
             tokenized_prompt = {}
-            if isinstance(tokenized_res, list):
-                input_ids = prompt_ids + tokenized_res[len(prompt_ids) :]
+            if "attention_mask" not in all_turns_tokenized:
+                prompt_ids = prompt_tokenized["input_ids"]
+                input_ids = (
+                    prompt_ids + all_turns_tokenized["input_ids"][len(prompt_ids) :]
+                )
                 tokenized_prompt["input_ids"] = input_ids
+                num_tokens_pre_truncation = all_turns_tokenized[
+                    "num_tokens_pre_truncation"
+                ]
                 tokenized_prompt["attention_mask"] = [1] * len(input_ids)
             else:
-                input_ids = tokenized_res["input_ids"]
-                tokenized_prompt = tokenized_res
+                input_ids = all_turns_tokenized["input_ids"]
+                num_tokens_pre_truncation = all_turns_tokenized[
+                    "num_tokens_pre_truncation"
+                ]
+                tokenized_prompt = all_turns_tokenized
 
             if not self.train_on_inputs:
                 user_prompt_len = len(prompt_ids)
@@ -259,11 +282,14 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
                 labels = input_ids
 
             tokenized_prompt["labels"] = labels
+            tokenized_prompt["num_tokens_pre_truncation"] = num_tokens_pre_truncation
 
             return tokenized_prompt
 
         turns = prompt[self.messages]
-        input_ids = self.prompter.build_prompt(turns)
+        tokenized_res = self.prompter.build_prompt(turns)
+        input_ids = tokenized_res["input_ids"]
+        num_tokens_pre_truncation = tokenized_res["num_tokens_pre_truncation"]
         labels = [IGNORE_TOKEN_ID] * len(input_ids)
 
         last_eos_idx = -1
@@ -342,6 +368,7 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
             "input_ids": input_ids,
             "labels": labels,
             "attention_mask": [1] * len(input_ids),
+            "num_tokens_pre_truncation": num_tokens_pre_truncation,
         }
 
     def find_eos_token(self, input_ids, start_idx):
