@@ -50,6 +50,12 @@ class InstructionWSystemPromptTokenizingStrategy(PromptTokenizingStrategy):
         tokenized_prompt["attention_mask"] += tokenized_res_prompt["attention_mask"]
         tokenized_prompt["labels"] += tokenized_res_prompt["input_ids"]
 
+        if "num_tokens_pre_truncation" in tokenized_prompt:
+            tokenized_prompt["num_tokens_pre_truncation"] = (
+                tokenized_prompt["num_tokens_pre_truncation"]
+                + tokenized_res_prompt["num_tokens_pre_truncation"]
+            )
+
         return tokenized_prompt
 
 
