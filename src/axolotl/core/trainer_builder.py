@@ -24,7 +24,7 @@ import math
 import sys
 from abc import abstractmethod
 from pathlib import Path
-from typing import List, Type, Union
+from typing import Any, List, Type, Union
 
 import torch
 import transformers
@@ -326,7 +326,7 @@ class HFCausalTrainerBuilder(TrainerBuilderBase):
             else max(min(int(0.005 * total_num_steps), 10), 1)
         )
 
-        training_arguments_kwargs = {}
+        training_arguments_kwargs = self.cfg.get("extra_hf_training_args") or {}
 
         if self.cfg.include_tokens_per_second is not None:
             training_arguments_kwargs["include_tokens_per_second"] = (
@@ -795,7 +795,7 @@ class HFCausalTrainerBuilder(TrainerBuilderBase):
                 None
             )
 
-        data_collator_kwargs = {
+        data_collator_kwargs: dict[str, Any] = {
             "padding": True,  # True/"longest" is the default
         }
         if self.cfg.pad_to_sequence_len:
@@ -955,7 +955,7 @@ class HFRLTrainerBuilder(TrainerBuilderBase):
         return callbacks
 
     def build_training_arguments(self, total_num_steps):
-        training_args_kwargs = {}
+        training_args_kwargs = self.cfg.get("extra_hf_training_args") or {}
         for arg in [
             "adam_beta1",
             "adam_beta2",
