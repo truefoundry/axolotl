@@ -1,6 +1,7 @@
 """Module containing PromptTokenizingStrategy and Prompter classes"""
 
 import abc
+import functools
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from transformers import BatchEncoding, PreTrainedTokenizer
@@ -62,17 +63,22 @@ class PromptTokenizingStrategy(abc.ABC):
     def _tokenize(
         self, prompt: str, add_eos_token: bool = True, strip_bos_token: bool = False
     ) -> BatchEncoding:
-        empty = BatchEncoding(data={"input_ids": [], "attention_mask": []})
+        empty = BatchEncoding(
+            data={"input_ids": [], "attention_mask": [], "num_tokens_pre_truncation": 0}
+        )
         if not prompt:
             LOG.warning("Empty text requested for tokenization.")
             return empty
 
-        result = self.tokenizer(
-            prompt,
-            truncation=True,
+        _tokenize = functools.partial(
+            self.tokenizer,
             max_length=self.max_length,
             padding=False,
             return_tensors=None,
+        )
+        result = _tokenize(
+            prompt,
+            truncation=True,
         )
         if len(result["input_ids"]) == 0:
             LOG.warning("Tokenizer result is empty. You may want to audit your dataset")
@@ -91,6 +97,20 @@ class PromptTokenizingStrategy(abc.ABC):
             result["attention_mask"] = result["attention_mask"][1:]
 
         result["labels"] = result["input_ids"].copy()
+
+        _all_tokens = _tokenize(prompt, truncation=False)
+        num_tokens_pre_truncation = len(_all_tokens["input_ids"])
+        if (
+            _all_tokens["input_ids"][-1] != self.tokenizer.eos_token_id
+            and add_eos_token
+        ):
+            num_tokens_pre_truncation += 1
+        if (
+            _all_tokens["input_ids"][0] == self.tokenizer.bos_token_id
+            and strip_bos_token
+        ):
+            num_tokens_pre_truncation -= 1
+        result["num_tokens_pre_truncation"] = num_tokens_pre_truncation
         return result
 
 

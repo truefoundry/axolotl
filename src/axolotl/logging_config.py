@@ -96,6 +96,12 @@ DEFAULT_LOGGING_CONFIG: Dict[str, Any] = {
             "filters": [],
             "stream": sys.stdout,
         },
+        "file": {
+            "class": "logging.FileHandler",
+            "formatter": "simple",
+            "filename": "train.log",
+            "mode": "w",
+        },
     },
     # log level will be superseded by the AxolotlLogger
     "root": {
@@ -104,7 +110,7 @@ DEFAULT_LOGGING_CONFIG: Dict[str, Any] = {
     },
     "loggers": {
         "axolotl": {
-            "handlers": ["color_console"],
+            "handlers": ["color_console", "file"],
             "level": os.getenv("AXOLOTL_LOG_LEVEL", DEFAULT_AXOLOTL_LOG_LEVEL),
             "propagate": False,
         },

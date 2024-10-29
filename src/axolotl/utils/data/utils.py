@@ -12,7 +12,10 @@ from datasets import Dataset, IterableDataset
 
 from axolotl.utils.dict import DictDefault
 from axolotl.utils.logging import get_logger
-from axolotl.utils.samplers.utils import get_dataset_lengths
+from axolotl.utils.samplers.utils import (
+    get_dataset_lengths,
+    plot_ascii_lengths_histogram,
+)
 from axolotl.utils.trainer import drop_long_seq
 
 LOG = get_logger(__name__)
@@ -171,6 +174,14 @@ def drop_long_seq_in_dataset(dataset: Dataset, cfg: DictDefault):
         min_sequence_len=cfg.min_sample_len,
     )
 
+    drop_long = (
+        _validate_datasets_sequence_lengths(
+            cfg=cfg,
+            dataset=dataset,
+        )
+        or drop_long
+    )
+
     try:
         ds_lengths = get_dataset_lengths(dataset, from_arrow=True)
         min_input_len = np.min(ds_lengths)
@@ -205,5 +216,94 @@ def drop_long_seq_in_dataset(dataset: Dataset, cfg: DictDefault):
         dropped = prior_len - len(dataset)
         if dropped:
             LOG.warning(f"Dropped {dropped} long samples from dataset")
+
+    dataset = _drop_num_tokens_pre_truncation(dataset)
+
+    return dataset
+
+
+def _drop_long_seq(sample, sequence_len, min_sequence_len):
+    min_sequence_len = min_sequence_len or 2
+
+    lengths = sample["num_tokens_pre_truncation"]
+
+    # Edge case: if input_ids is empty
+    if not lengths:
+        # Decide if you want to drop or keep empty. Let's drop.
+        return False
+
+    # Check if single example or batched by looking at the first element
+    if isinstance(lengths, int):
+        # Single example (input_ids is a list of int)
+        length = lengths
+        return min_sequence_len <= length <= sequence_len
+
+    # Batched (input_ids is a list of lists)
+    results = []
+    for length in lengths:
+        results.append(min_sequence_len <= length <= sequence_len)
+    return results
+
+
+def _validate_dataset_sequence_lengths(
+    dataset,
+    dataset_type,
+    sequence_len,
+    long_sequences_strategy,
+):
+    if "num_tokens_pre_truncation" not in dataset.features:
+        raise ValueError(
+            f"`long_sequences_strategy` is set to {long_sequences_strategy} but `num_tokens_pre_truncation` is missing from  {dataset_type} dataset"
+        )
+    plot_ascii_lengths_histogram(
+        data=dataset["num_tokens_pre_truncation"],
+        title=f"{dataset_type} Dataset lengths",
+        logger=LOG,
+    )
+    num_longer_seqs = sum(
+        1 for seq_len in dataset["num_tokens_pre_truncation"] if seq_len > sequence_len
+    )
+    max_len = max(dataset["num_tokens_pre_truncation"])
+    if num_longer_seqs > 0:
+        message = f"""\
+Found {num_longer_seqs}/{len(dataset)} sequences longer than {sequence_len} tokens in {dataset_type} Dataset.
+Longest sequence is {max_len} tokens."""
+        if long_sequences_strategy == "error":
+            raise ValueError(
+                f"{message}\n"
+                f"Please either increase --sequence_len or set --long_sequences_strategy to `drop` to drop and ignore such sequences."
+            )
+
+        LOG.warning(f"{message}\n" f"These sequences will be dropped.")
+
+
+def _validate_datasets_sequence_lengths(
+    cfg,
+    dataset,
+):
+    long_sequences_strategy = cfg.get("long_sequences_strategy", "truncate")
+    if long_sequences_strategy in ["drop", "error"]:
+        _validate_dataset_sequence_lengths(
+            dataset=dataset,
+            dataset_type="Dataset",
+            sequence_len=cfg.sequence_len,
+            long_sequences_strategy=long_sequences_strategy,
+        )
+        if long_sequences_strategy == "drop":
+            drop_long = functools.partial(
+                _drop_long_seq,
+                sequence_len=cfg.sequence_len,
+                min_sequence_len=cfg.min_sample_len or 2,
+            )
+            return drop_long
+
+    return None
+
+
+def _drop_num_tokens_pre_truncation(
+    dataset,
+):
+    if "num_tokens_pre_truncation" in dataset.features:
+        dataset = dataset.remove_columns(["num_tokens_pre_truncation"])
 
     return dataset
