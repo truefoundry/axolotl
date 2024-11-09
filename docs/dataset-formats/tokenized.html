@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.56">
+<meta name="generator" content="quarto-1.5.57">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -211,6 +211,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Unsloth</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../docs/amd_hpc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Training with AMD GPUs on HPC Systems</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -316,7 +322,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Pass an empty <code>type:</code> in your axolotl config.</li>
 <li>Columns in Dataset must be exactly <code>input_ids</code>, <code>attention_mask</code>, <code>labels</code></li>
 <li>To indicate that a token should be ignored during training, set its corresponding label to <code>-100</code>.</li>
-<li>Do not add BOS/EOS. Axolotl will add them for you based on the default tokenizer for the model you’re using.</li>
+<li>You must add BOS and EOS, and make sure that you are training on EOS by not setting its label to -100.</li>
 <li>For pretraining, do not truncate/pad documents to the context window length.</li>
 <li>For instruction training, documents must be truncated/padded as desired.</li>
 </ul>
