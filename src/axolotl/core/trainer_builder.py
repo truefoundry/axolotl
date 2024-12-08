@@ -1492,7 +1492,10 @@ class HFCausalTrainerBuilder(TrainerBuilderBase):
             else max(min(int(0.005 * total_num_steps), 10), 1)
         )
 
-        training_arguments_kwargs = {}
+        training_arguments_kwargs = {
+            "average_tokens_across_devices": True,
+            "eval_on_start": True,
+        }
         if self.cfg.bf16 == "full":
             training_arguments_kwargs["bf16_full_eval"] = True
         else:
@@ -2006,7 +2009,7 @@ class HFRLTrainerBuilder(TrainerBuilderBase):
         return callbacks
 
     def build_training_arguments(self, total_num_steps):
-        training_args_kwargs = {}
+        training_args_kwargs = {"average_tokens_across_devices": True}
         for arg in [
             "adam_beta1",
             "adam_beta2",
