@@ -2,114 +2,114 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://truefoundry.github.io/axolotl/FAQS.html</loc>
-    <lastmod>2024-12-17T05:07:10.246Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.723Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/examples/colab-notebooks/colab-axolotl-example.html</loc>
-    <lastmod>2024-12-17T05:07:10.250Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.727Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/config.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.724Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/multi-node.html</loc>
-    <lastmod>2024-12-17T05:07:10.249Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/nccl.html</loc>
-    <lastmod>2024-12-17T05:07:10.250Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/mac.html</loc>
-    <lastmod>2024-12-17T05:07:10.249Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/amd_hpc.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.724Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset_preprocessing.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/rlhf.html</loc>
-    <lastmod>2024-12-17T05:07:10.250Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset-formats/conversation.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.724Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset-formats/pretraining.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset-formats/tokenized.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/unsloth.html</loc>
-    <lastmod>2024-12-17T05:07:10.250Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/src/axolotl/integrations/cut_cross_entropy/ACKNOWLEDGEMENTS.html</loc>
-    <lastmod>2024-12-17T05:07:10.264Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.740Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/src/axolotl/integrations/LICENSE.html</loc>
-    <lastmod>2024-12-17T05:07:10.263Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.740Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/multipack.html</loc>
-    <lastmod>2024-12-17T05:07:10.250Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/input_output.html</loc>
-    <lastmod>2024-12-17T05:07:10.249Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset-formats/inst_tune.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset-formats/index.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.724Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/dataset-formats/template_free.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/multimodal.html</loc>
-    <lastmod>2024-12-17T05:07:10.249Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/torchao.html</loc>
-    <lastmod>2024-12-17T05:07:10.250Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.726Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/fsdp_qlora.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/debugging.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/batch_vs_grad.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.724Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/docs/faq.html</loc>
-    <lastmod>2024-12-17T05:07:10.248Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.725Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/index.html</loc>
-    <lastmod>2024-12-17T05:07:10.261Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.738Z</lastmod>
   </url>
   <url>
     <loc>https://truefoundry.github.io/axolotl/TODO.html</loc>
-    <lastmod>2024-12-17T05:07:10.247Z</lastmod>
+    <lastmod>2024-12-17T21:03:22.723Z</lastmod>
   </url>
 </urlset>
