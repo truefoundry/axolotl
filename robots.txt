@@ -1,1 +1,1 @@
-Sitemap: https://truefoundry.github.io/axolotl/sitemap.xml
+Sitemap: https://docs.axolotl.ai/sitemap.xml
