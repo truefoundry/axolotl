@@ -16,7 +16,11 @@ from accelerate.utils import save_fsdp_model
 from datasets import Dataset
 from huggingface_hub.errors import OfflineModeIsEnabled
 from peft import PeftConfig, PeftModel
-from transformers import PreTrainedModel, PreTrainedTokenizer, ProcessorMixin
+from transformers import (
+    PreTrainedModel,
+    PreTrainedTokenizer,
+    ProcessorMixin,
+)
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 from transformers.trainer import Trainer
 
@@ -24,7 +28,7 @@ from axolotl.common.datasets import TrainDatasetMeta
 from axolotl.contribs.lgpl import (  # pylint: disable = no-name-in-module
     fix_untrained_tokens,
 )
-from axolotl.core.trainer_builder import HFCausalTrainerBuilder, HFRLTrainerBuilder
+from axolotl.integrations.base import PluginManager
 from axolotl.logging_config import configure_logging
 from axolotl.utils.dict import DictDefault
 from axolotl.utils.distributed import cleanup_distributed
@@ -77,6 +81,9 @@ def setup_model_and_tokenizer(
     model, peft_config = load_model(cfg, tokenizer, processor=processor)
     if model.generation_config is not None:
         model.generation_config.do_sample = True
+
+    plugin_manager = PluginManager.get_instance()
+    plugin_manager.post_model_load(cfg, model)
 
     # Apply freezing if specified
     if cfg.unfrozen_parameters:
@@ -153,7 +160,11 @@ def setup_signal_handler(
         safe_serialization: Whether to use safe serialization when saving
     """
     # ray workers don't have access to this signal
-    if cfg.local_rank == 0 and not cfg.use_ray:
+    if (
+        cfg.local_rank == 0
+        and not cfg.use_ray
+        and cfg.get("save_model_on_interrupt", True)
+    ):
 
         def terminate_handler(_, __, model_weakref):
             if model_weakref() is not None:
@@ -418,7 +429,7 @@ def handle_untrained_tokens_fix(
 
 
 def setup_model_and_trainer(cfg: DictDefault, dataset_meta: TrainDatasetMeta) -> tuple[
-    HFRLTrainerBuilder | HFCausalTrainerBuilder,
+    Trainer,
     PeftModel | PreTrainedModel,
     PreTrainedTokenizer,
     PeftConfig | None,
@@ -514,7 +525,13 @@ def train(
     # Save the trained model and cleanup
     save_trained_model(cfg, trainer, model, safe_serialization)
     create_model_card(cfg, trainer)
-    if not cfg.use_ray:
-        cleanup_distributed()
+
+    if cfg.deepspeed:
+        trainer.deepspeed.destroy()
+    trainer.accelerator.free_memory()
+    trainer.model, trainer.model_wrapped, trainer.optimizer = None, None, None
+
+    # if not cfg.use_ray:
+    #     cleanup_distributed()
 
     return model, tokenizer, trainer
