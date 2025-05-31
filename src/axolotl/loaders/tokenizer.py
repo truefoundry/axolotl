@@ -3,6 +3,7 @@
 import json
 import os
 
+from axolotl.utils.dict import DictDefault
 import transformers
 from transformers import (
     AddedToken,
@@ -185,6 +186,12 @@ def load_tokenizer(cfg):
                 setattr(tokenizer, attr_name, "<|endoftext|>")
 
     additional_special_tokens = None
+
+    if not tokenizer.pad_token:
+        if not cfg.special_tokens:
+            cfg.special_tokens = DictDefault({})
+        cfg.special_tokens.pad_token = tokenizer.eos_token
+
     if cfg.special_tokens:
         special_tokens = cfg.special_tokens.to_dict()
         additional_special_tokens = special_tokens.pop(
