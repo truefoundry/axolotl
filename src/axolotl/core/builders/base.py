@@ -439,7 +439,7 @@ class TrainerBuilderBase(abc.ABC):
     def _set_base_training_args(
         self, total_num_steps
     ) -> tuple[dict[str, Any], dict[str, Any]]:
-        training_args_kwargs: dict[str, Any] = {}
+        training_args_kwargs: dict[str, Any] = self.cfg.get("extra_hf_training_args") or {}
         trainer_kwargs: dict[str, Any] = {}
 
         self._configure_warmup_and_logging(total_num_steps, training_args_kwargs)

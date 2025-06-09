@@ -6,6 +6,7 @@ import os
 import pickle  # nosec
 from contextlib import contextmanager
 from datetime import timedelta
+from typing import Optional
 
 import torch
 import torch.distributed as dist
@@ -16,8 +17,7 @@ from transformers.utils.import_utils import (
     is_torch_npu_available,
 )
 
-distributed_state = None  # pylint: disable=invalid-name
-
+distributed_state: Optional[PartialState] = None  # pylint: disable=invalid-name
 
 def get_device_type():
     device = torch.device("cpu")
@@ -102,6 +102,7 @@ def cleanup_distributed():
     Destroy process group if torch distributed is initialized. Called in training early
     termination or when training successfully completes.
     """
+    global distributed_state  # pylint: disable=global-statement
     # Ensure that all operations are completed before destroying the process group
     if torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -110,8 +111,9 @@ def cleanup_distributed():
         torch.xpu.synchronize()
 
     # Destroy the process group
-    if torch.distributed.is_initialized():
-        torch.distributed.destroy_process_group()
+    if distributed_state:
+        distributed_state.destroy_process_group()
+        distributed_state = None
 
 
 @contextmanager

@@ -94,20 +94,26 @@ class ChatTemplatePrompter(Prompter):
                 images=images,
                 return_tensors="pt",
             )
+            # dict_keys(['input_ids', 'attention_mask', 'pixel_values'])
             # workaround since processor works in batches instead of single examples
             for k, val in batch.items():
                 if k in ["pixel_values"]:
                     batch[k] = val.tolist()
                 else:
                     batch[k] = val.squeeze().tolist()
+            batch["num_tokens_pre_truncation"] = len(batch["input_ids"])
             return batch
 
-        return self.tokenizer.apply_chat_template(
+        input_ids = self.tokenizer.apply_chat_template(
             conversation,
             add_generation_prompt=add_generation_prompt,
             chat_template=self.chat_template,
             **self.chat_template_kwargs,
         )
+        return {
+            "input_ids": input_ids,
+            "num_tokens_pre_truncation": len(input_ids),
+        }
 
     def get_offsets_for_train_detail(
         self, text: str, train_details: List[Dict], mask_untrainable: bool = True
@@ -377,21 +383,25 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
         ):
             turns = self.get_conversation_thread(prompt)
             images = self.get_images(prompt)
-            prompt_ids = self.prompter.build_prompt(  # type: ignore
+            # We get back {"input_ids": [...], "num_tokens_pre_truncation": ...}
+            _prompt_ids = self.prompter.build_prompt(
                 turns[:-1],
                 add_generation_prompt=True,
                 images=images,
             )
+            prompt_ids = _prompt_ids["input_ids"]
             tokenized_res = self.prompter.build_prompt(
                 turns, images=images
             )  # type: ignore
             tokenized_prompt = {}
-            if isinstance(tokenized_res, list):
-                input_ids = prompt_ids + tokenized_res[len(prompt_ids) :]
+            if "attention_mask" not in tokenized_res:
+                input_ids = prompt_ids + tokenized_res["input_ids"][len(prompt_ids) :]
                 tokenized_prompt["input_ids"] = input_ids
+                num_tokens_pre_truncation = tokenized_res["num_tokens_pre_truncation"]
                 tokenized_prompt["attention_mask"] = [1] * len(input_ids)
             else:
                 input_ids = tokenized_res["input_ids"]
+                num_tokens_pre_truncation = tokenized_res["num_tokens_pre_truncation"]
                 tokenized_prompt = tokenized_res
 
             if not self.train_on_inputs:
@@ -401,11 +411,14 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
                 labels = input_ids
 
             tokenized_prompt["labels"] = labels
+            tokenized_prompt["num_tokens_pre_truncation"] = num_tokens_pre_truncation
 
             return tokenized_prompt
 
         turns = self.get_conversation_thread(prompt)
-        input_ids = self.prompter.build_prompt(turns)  # type: ignore
+        tokenized_res = self.prompter.build_prompt(turns)
+        input_ids = tokenized_res["input_ids"]
+        num_tokens_pre_truncation = tokenized_res["num_tokens_pre_truncation"]
         labels = [IGNORE_TOKEN_ID] * len(input_ids)
 
         last_eos_idx = -1
@@ -518,6 +531,7 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
             "input_ids": input_ids,
             "labels": labels,
             "attention_mask": [1] * len(input_ids),
+            "num_tokens_pre_truncation": num_tokens_pre_truncation,
         }
 
     def find_first_eos_token(self, input_ids, start_idx):
@@ -577,10 +591,10 @@ class ChatTemplateStrategy(PromptTokenizingStrategy):
         turns_with_content = turns[: turn_idx + 1]
 
         # Generate the conversation up to the turn, with final turn replaced with dummy content
-        dummy_ids = self.prompter.build_prompt(turns_with_empty)  # type: ignore
+        dummy_ids = self.prompter.build_prompt(turns_with_empty)["input_ids"]  # type: ignore
 
         # Generate the conversation up to the turn, with final turn included
-        full_ids = self.prompter.build_prompt(turns_with_content)  # type: ignore
+        full_ids = self.prompter.build_prompt(turns_with_content)["input_ids"]  # type: ignore
 
         if not full_ids or not dummy_ids:
             LOG.warning(f"Empty template generated for turn {turn_idx}")
