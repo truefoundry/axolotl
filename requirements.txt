@@ -25,7 +25,7 @@ hqq==0.2.5
 optimum==1.16.2
 hf_transfer
 sentencepiece
-gradio==5.23.3
+gradio==6.15.1
 
 modal==0.70.5
 pydantic==2.10.6
