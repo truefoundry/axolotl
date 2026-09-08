@@ -148,7 +148,7 @@ extras_require = {
         "ray[train]",
     ],
     "vllm": [
-        "vllm==0.7.2",
+        "vllm==0.27.0",
     ],
     "llmcompressor": [
         "llmcompressor==0.5.1",
